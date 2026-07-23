@@ -23,6 +23,19 @@ def write_file(path: str, content: str) -> None:
     
     return f"Successfully wrote to file {path}"
 
+@TOOLS.register("Bash")
+def run_bash_command(command: str) -> str:
+    """Run a bash command and return the output."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        return result.stdout.decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        raise ValueError(f"Error running command {command}: {e.stderr.decode('utf-8')}")
+
 
 def process_tool_call(tool_call):
     """Process a tool call and return the result."""

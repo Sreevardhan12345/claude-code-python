@@ -36,5 +36,22 @@ TOOLLIST = [
                 "required": ["path", "content"],
             },
         },
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "Bash",
+            "description": "Run a bash command and return the output",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "description": "The bash command to run",
+                    }
+                },
+                "required": ["command"],
+            },
+        },
+    },
 ]
