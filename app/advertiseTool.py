@@ -1,4 +1,3 @@
-
 TOOLLIST = [
     {
         "type": "function",
