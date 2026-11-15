@@ -13,7 +13,7 @@ def read_file(path: str) -> str:
     
     
 @TOOLS.register("write_file")
-def write_file(path: str, content: str) -> None:
+def write_file(path: str, content: str) -> str:
     """Write content to a file on the local filesystem."""
     try:
         with open(path, "w") as f:
