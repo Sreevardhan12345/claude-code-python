@@ -1,4 +1,3 @@
-
 import json
 from .registry import Registry
 
@@ -10,18 +9,19 @@ def read_file(path: str) -> str:
     """Read a file from the local filesystem."""
     with open(path, "r") as f:
         return f.read()
-    
-    
+
+
 @TOOLS.register("write_file")
 def write_file(path: str, content: str) -> str:
     """Write content to a file on the local filesystem."""
     try:
         with open(path, "w") as f:
-                f.write(content)
+            f.write(content)
     except Exception as e:
         raise ValueError(f"Error writing to file {path}: {e}")
-    
+
     return f"Successfully wrote to file {path}"
+
 
 @TOOLS.register("Bash")
 def run_bash_command(command: str) -> str:
@@ -30,7 +30,11 @@ def run_bash_command(command: str) -> str:
 
     try:
         result = subprocess.run(
-            command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            command,
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         return result.stdout.decode("utf-8")
     except subprocess.CalledProcessError as e:
