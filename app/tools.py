@@ -15,11 +15,8 @@ def read_file(path: str) -> str:
 @TOOLS.register("write_file")
 def write_file(path: str, content: str) -> str:
     """Write content to a file on the local filesystem."""
-    try:
-        with open(path, "w") as f:
-            f.write(content)
-    except Exception as e:
-        raise ValueError(f"Error writing to file {path}: {e}")
+    with open(path, "w") as f:
+        f.write(content)
 
     return f"Successfully wrote to file {path}"
 
@@ -34,8 +31,7 @@ def run_bash_command(command: str) -> str:
             command,
             shell=True,
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         return result.stdout.decode("utf-8")
     except subprocess.CalledProcessError as e:

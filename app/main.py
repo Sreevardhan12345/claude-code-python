@@ -4,7 +4,7 @@ import os
 from openai import OpenAI
 
 from .advertiseTool import TOOLLIST
-from .helpers.skill_helper import get_skill_details
+from .skills import Skill
 from .tools import process_tool_call
 
 API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -23,17 +23,17 @@ def main():
     conversation = [{"role": "user", "content": args.p}]
 
     if args.p.startswith("/"):
-        skill_path = ".claude/skills" + args.p + "/SKILL.md"
-        _, skill_context = get_skill_details(skill_path)
+        name, *params = args.p[1:].split(" ")
+        skill = Skill(name=name, args=params)
 
         conversation = [
             {
                 "role": "system",
-                "content": f"you have access to the following skill: {skill_context['name']}. The description of the skill is: {skill_context['description']}",
+                "content": f"you have access to the following skill: {skill.name}. The description of the skill is: {skill.description} \n $ARGUMENTS points to the string {' '.join(skill.args)}, split and consider as 0 indexed array if $ARGUMENTS is queried with index",
             },
             {
                 "role": "user",
-                "content": args.p,
+                "content": skill.prompt,
             },
         ]
 
