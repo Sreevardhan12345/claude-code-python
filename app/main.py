@@ -22,22 +22,33 @@ def main():
 
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
+    # load all skill anmes and descriptions into the conversation
+    systemPrompt = ""
+    try:
+        if os.path.exists("./.claude/skills"):
+            skillsList = [Skill(name) for name in os.listdir("./.claude/skills")]
+            systemPrompt = "\n".join([skill.systemPrompt for skill in skillsList])
+
+    except OSError:
+        print("Skills cannot be loaded")
+
+    conversation = [
+        {
+            "role": "system",
+            "content": f"you have access to the following skills: {systemPrompt}\n\nIf a skill matches the user's request, call the Skill tool with its name and follow the instructions it returns.",
+        },
+    ]
+
     if args.p.startswith("/"):
         skills, params = split_skills_from_arguments(args.p)
 
+        # convert skill names to Skill objects with parameters for called skills
         skills = [Skill(skill, args=params) for skill in skills]
-
-        conversation = [
-            {
-                "role": "system",
-                "content": f"you have access to the following skills: {'\n'.join([skill.systemPrompt for skill in skills])}",
-            },
-        ]
 
         for skill in skills:
             conversation.append({"role": "user", "content": skill.prompt})
     else:
-        conversation = [{"role": "user", "content": args.p}]
+        conversation.append({"role": "user", "content": args.p})
 
     while True:
         chat = client.chat.completions.create(

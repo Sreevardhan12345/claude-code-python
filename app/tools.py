@@ -38,6 +38,15 @@ def run_bash_command(command: str) -> str:
         raise ValueError(f"Error running command {command}: {e.stderr.decode('utf-8')}")
 
 
+@TOOLS.register("Skill")
+def load_skill(name: str, args: str = "") -> str:
+    """Load a skill's instructions into the conversation."""
+    from .skills import Skill
+
+    skill = Skill(name, args=args.split() if args else [])
+    return skill.prompt
+
+
 def process_tool_call(tool_call):
     """Process a tool call and return the result."""
     if tool_call.function.name not in TOOLS:
