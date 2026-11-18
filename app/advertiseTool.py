@@ -75,4 +75,32 @@ TOOLLIST = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "LSP",
+            "description": "Returns the file, line, and character where a symbol is defined.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "operation": {"type": "string", "enum": ["goToDefinition"]},
+                    "filePath": {
+                        "type": "string",
+                        "description": "Absolute path, or a path relative to the agent's current working directory.",
+                    },
+                    "line": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "1-based line number of the symbol.",
+                    },
+                    "character": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "1-based character offset in UTF-16 code units (same as character count for ASCII).",
+                    },
+                },
+                "required": ["operation", "filePath", "line", "character"],
+            },
+        },
+    },
 ]

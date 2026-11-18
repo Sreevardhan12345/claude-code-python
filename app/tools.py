@@ -51,6 +51,16 @@ def load_skill(name: str, args: str = "", fork_runner=None) -> str:
     return skill.prompt
 
 
+@TOOLS.register("LSP")
+def lsp(operation: str, filePath: str, line: int, character: int) -> str:
+    """Finds and Returns the file, line, and character where a symbol is defined.
+    Indices are 1 based"""
+    # from .main import initialize_lsp
+    # client = initialize_lsp()
+
+    return "LSP is not implemented yet"
+
+
 def process_tool_call(tool_call, fork_runner=None):
     """Process a tool call and return the result."""
     if tool_call.function.name not in TOOLS:

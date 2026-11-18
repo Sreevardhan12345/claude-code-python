@@ -11,6 +11,17 @@ from .tools import process_tool_call
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
 
+LSP = None
+
+
+def initialize_lsp():
+    global LSP
+    if LSP is None:
+        from .lsp_client import LSPClient
+
+        LSP = LSPClient.from_environment()
+    return LSP
+
 
 def run_agent_loop(client, conversation):
     while True:
@@ -59,6 +70,7 @@ def run_agent_loop(client, conversation):
 
 
 def main():
+    initialize_lsp()
     p = argparse.ArgumentParser()
     p.add_argument("-p", required=True)
     args = p.parse_args()
