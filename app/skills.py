@@ -18,6 +18,7 @@ class Skill:
         if len(args) > 0:
             self.populate(args)
 
+        self.body = self.prompt
         self.prompt = f"Skill: {self.name} (located at {self.path})\nPaths in the instructions below are relative to that folder.\n{self.prompt}"
         self.systemPrompt = f"""
         Name: {self.name}.
@@ -39,6 +40,7 @@ class Skill:
 
             self.name = skill_header["name"]
             self.description = skill_header["description"]
+            self.context = skill_header.get("context")
 
             self.prompt = skill_file_splits[2]
             self._isPrepared = True

@@ -39,17 +39,24 @@ def run_bash_command(command: str) -> str:
 
 
 @TOOLS.register("Skill")
-def load_skill(name: str, args: str = "") -> str:
+def load_skill(name: str, args: str = "", fork_runner=None) -> str:
     """Load a skill's instructions into the conversation."""
     from .skills import Skill
 
     skill = Skill(name, args=args.split() if args else [])
+    if skill.context == "fork":
+        if fork_runner is None:
+            raise RuntimeError("A fork runner is required for fork-context skills")
+        return fork_runner([{"role": "user", "content": skill.body}])
     return skill.prompt
 
 
-def process_tool_call(tool_call):
+def process_tool_call(tool_call, fork_runner=None):
     """Process a tool call and return the result."""
     if tool_call.function.name not in TOOLS:
         raise ValueError(f"Tool {tool_call.function.name} is not registered.")
     args_dict = json.loads(tool_call.function.arguments)
-    return TOOLS.get(tool_call.function.name)(**args_dict)
+    tool = TOOLS.get(tool_call.function.name)
+    if tool_call.function.name == "Skill":
+        return tool(**args_dict, fork_runner=fork_runner)
+    return tool(**args_dict)

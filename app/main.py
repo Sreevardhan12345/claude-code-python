@@ -12,6 +12,52 @@ API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
 
 
+def run_agent_loop(client, conversation):
+    while True:
+        chat = client.chat.completions.create(
+            model="anthropic/claude-haiku-4.5",
+            messages=conversation,
+            tools=TOOLLIST,
+        )
+
+        if not chat.choices or len(chat.choices) == 0:
+            raise RuntimeError("no choices in response")
+
+        response = chat.choices[0].message
+        message_dict = {
+            "role": response.role,
+            "content": response.content,
+        }
+
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            message_dict["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
+                }
+                for tc in response.tool_calls
+            ]
+        conversation.append(message_dict)
+        if not message_dict.get("tool_calls"):
+            return response.content
+        for tc in response.tool_calls:
+            tc_response = process_tool_call(
+                tc,
+                fork_runner=lambda messages: run_agent_loop(client, messages),
+            )
+            conversation.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": tc_response,
+                }
+            )
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("-p", required=True)
@@ -50,49 +96,7 @@ def main():
     else:
         conversation.append({"role": "user", "content": args.p})
 
-    while True:
-        chat = client.chat.completions.create(
-            model="anthropic/claude-haiku-4.5",
-            messages=conversation,
-            tools=TOOLLIST,
-        )
-
-        if not chat.choices or len(chat.choices) == 0:
-            raise RuntimeError("no choices in response")
-
-        response = chat.choices[
-            0
-        ].message  # only considering the first response for now
-        message_dict = {
-            "role": response.role,
-            "content": response.content,
-        }
-
-        if hasattr(response, "tool_calls") and response.tool_calls:
-            message_dict["tool_calls"] = [
-                {
-                    "id": tc.id,
-                    "type": tc.type,
-                    "function": {
-                        "name": tc.function.name,
-                        "arguments": tc.function.arguments,
-                    },
-                }
-                for tc in response.tool_calls
-            ]
-        conversation.append(message_dict)
-        if not message_dict.get("tool_calls"):
-            print(response.content)
-            break
-        for tc in response.tool_calls:
-            tc_response = process_tool_call(tc)
-            conversation.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "content": tc_response,
-                }
-            )
+    print(run_agent_loop(client, conversation))
 
 
 if __name__ == "__main__":
