@@ -1,3 +1,4 @@
+import re
 import string
 
 
@@ -14,6 +15,7 @@ class SafeFormatter(string.Formatter):
 
 
 def safe_format(template, *args, **kwargs):
+    template = re.sub(r"\$(\d+)", r"{\1}", template)
     return (
         SafeFormatter()
         .format(template, *args, **kwargs)
