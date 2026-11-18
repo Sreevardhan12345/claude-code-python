@@ -4,6 +4,7 @@ import os
 from openai import OpenAI
 
 from .advertiseTool import TOOLLIST
+from .helpers.skill_helper import split_skills_from_arguments
 from .skills import Skill
 from .tools import process_tool_call
 
@@ -20,22 +21,23 @@ def main():
         raise RuntimeError("OPENROUTER_API_KEY is not set")
 
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
-    conversation = [{"role": "user", "content": args.p}]
 
     if args.p.startswith("/"):
-        name, *params = args.p[1:].split(" ")
-        skill = Skill(name=name, args=params)
+        skills, params = split_skills_from_arguments(args.p)
+
+        skills = [Skill(skill, args=params) for skill in skills]
 
         conversation = [
             {
                 "role": "system",
-                "content": f"you have access to the following skill: {skill.name}. The description of the skill is: {skill.description} \n $ARGUMENTS points to the string {' '.join(skill.args)}, split and consider as 0 indexed array if $ARGUMENTS is queried with index",
-            },
-            {
-                "role": "user",
-                "content": skill.prompt,
+                "content": f"you have access to the following skills: {'\n'.join([skill.systemPrompt for skill in skills])}",
             },
         ]
+
+        for skill in skills:
+            conversation.append({"role": "user", "content": skill.prompt})
+    else:
+        conversation = [{"role": "user", "content": args.p}]
 
     while True:
         chat = client.chat.completions.create(
@@ -47,14 +49,15 @@ def main():
         if not chat.choices or len(chat.choices) == 0:
             raise RuntimeError("no choices in response")
 
-        response = chat.choices[0].message
-        response_message = chat.choices[0].message
+        response = chat.choices[
+            0
+        ].message  # only considering the first response for now
         message_dict = {
-            "role": response_message.role,
-            "content": response_message.content,
+            "role": response.role,
+            "content": response.content,
         }
 
-        if hasattr(response_message, "tool_calls") and response_message.tool_calls:
+        if hasattr(response, "tool_calls") and response.tool_calls:
             message_dict["tool_calls"] = [
                 {
                     "id": tc.id,
@@ -64,19 +67,19 @@ def main():
                         "arguments": tc.function.arguments,
                     },
                 }
-                for tc in response_message.tool_calls
+                for tc in response.tool_calls
             ]
         conversation.append(message_dict)
         if not message_dict.get("tool_calls"):
             print(response.content)
             break
         for tc in response.tool_calls:
-            tc_reponse = process_tool_call(tc)
+            tc_response = process_tool_call(tc)
             conversation.append(
                 {
                     "role": "tool",
                     "tool_call_id": tc.id,
-                    "content": tc_reponse,
+                    "content": tc_response,
                 }
             )
 

@@ -14,4 +14,22 @@ class SafeFormatter(string.Formatter):
 
 
 def safe_format(template, *args, **kwargs):
-    return SafeFormatter().format(template, *args, **kwargs)
+    return (
+        SafeFormatter()
+        .format(template, *args, **kwargs)
+        .replace("$ARGUMENTS", " ".join(args))
+    )
+
+
+def split_skills_from_arguments(arguments: str):
+    """Split the argument string into list of skills and list of arguments"""
+    parts = arguments.split() if arguments else []
+    skills = []
+    args = []
+    for i, part in enumerate(parts):
+        if part.startswith("/"):
+            skills.append(part)
+        else:
+            args = parts[i:]
+            break
+    return skills, args

@@ -6,7 +6,8 @@ from .helpers.skill_helper import safe_format
 
 
 class Skill:
-    def __init__(self, name, path: str = "", args: list[str] | None = None):
+    def __init__(self, name: str, path: str = "", args: list[str] | None = None):
+        name = name.lstrip("/")
         if args is None:
             args = []
         self.path: str = path if path else f".claude/skills/{name}/SKILL.md"
@@ -16,6 +17,13 @@ class Skill:
         self.prepare()
         if len(args) > 0:
             self.populate(args)
+
+        self.systemPrompt = f"""
+        Name: {self.name}.
+        Descrption: {self.description}
+        $ARGUMENTS: {" ".join(self.args)},
+        split and consider $ARGUMNETS as 0 indexed array if queried with index
+        """
 
     def prepare(self):
         """Get the details of a skill from its SKILL.md file."""
