@@ -16,11 +16,9 @@ class SafeFormatter(string.Formatter):
 
 def safe_format(template, *args, **kwargs):
     template = re.sub(r"\$(\d+)", r"{\1}", template)
-    return (
-        SafeFormatter()
-        .format(template, *args, **kwargs)
-        .replace("$ARGUMENTS", " ".join(args))
-    )
+    template = re.sub(r"\$ARGUMENTS\[(\d+)\]", r"{\1}", template)
+    template = re.sub(r"\$ARGUMENTS", " ".join(args), template)
+    return SafeFormatter().format(template, *args, **kwargs)
 
 
 def split_skills_from_arguments(arguments: str):

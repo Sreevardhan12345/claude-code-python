@@ -18,11 +18,10 @@ class Skill:
         if len(args) > 0:
             self.populate(args)
 
+        self.prompt = f"Skill: {self.name} (located at {self.path})\nPaths in the instructions below are relative to that folder.\n{self.prompt}"
         self.systemPrompt = f"""
         Name: {self.name}.
         Descrption: {self.description}
-        $ARGUMENTS: {" ".join(self.args)},
-        split and consider $ARGUMNETS as 0 indexed array if queried with index
         """
 
     def prepare(self):
