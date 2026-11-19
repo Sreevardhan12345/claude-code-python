@@ -55,8 +55,49 @@ def load_skill(name: str, args: str = "", fork_runner=None) -> str:
 def lsp(operation: str, filePath: str, line: int, character: int) -> str:
     """Finds and Returns the file, line, and character where a symbol is defined.
     Indices are 1 based"""
-    # from .main import initialize_lsp
-    # client = initialize_lsp()
+    from .main import initialize_lsp
+    from os import path
+
+    client = initialize_lsp()
+
+    # TODO: Process filepath into uri like - no special characters like " " -> "%20"
+    if operation == "goToDefinition":
+        # step1: notify file to lsp
+        if not path.exists(filePath):
+            raise FileNotFoundError
+        filePath = path.abspath(filePath)
+        with open(filePath, "r") as file:
+            client.notify(
+                method="textDocument/didOpen",
+                params={
+                    "textDocument": {
+                        "uri": "file://"+filePath,
+                        "languageId": "python",
+                        "version": 1,
+                        "text": file.read(),
+                    }
+                },
+            )
+
+        definition = client.request(
+            method="textDocument/definition",
+            params={
+                "textDocument": {"uri": "file://"+filePath},
+                "position": {"line": line - 1, "character": character - 1},
+            },
+        )
+
+        uri = definition.get("uri", None)
+        location = definition.get("range", None)
+
+        location = location.get("start")
+        line, character = location.get("line") + 1, location.get("character") + 1
+
+        if not path.exists(uri.replace("file://", "")):
+            raise FileNotFoundError
+        
+        return f"{uri.replace('file://', '')} at {line}:{character} (1-based line:character)"
+
 
     return "LSP is not implemented yet"
 
