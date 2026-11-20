@@ -83,7 +83,10 @@ TOOLLIST = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "operation": {"type": "string", "enum": ["goToDefinition"]},
+                    "operation": {
+                        "type": "string",
+                        "enum": ["goToDefinition", "findReferences"],
+                    },
                     "filePath": {
                         "type": "string",
                         "description": "Absolute path, or a path relative to the agent's current working directory.",
