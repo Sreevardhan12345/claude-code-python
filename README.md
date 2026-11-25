@@ -83,6 +83,9 @@ The model can call these tools during a conversation:
 For LSP calls, `filePath` can be absolute or relative to the agent's working
 directory. `line` and `character` are 1-based positions.
 
+When LSP is enabled, additional file writes in the same model turn are deferred
+to allow diagnostics to be reviewed before further edits.
+
 ## Skills
 
 Project skills are read from `.claude/skills/<skill-name>/SKILL.md`. A skill
@@ -108,10 +111,11 @@ Replace `skill-name` with a skill directory that exists in `.claude/skills`.
 - `app/skills.py` — skill loading and prompt preparation.
 - `your_program.sh` — local runner used by the CodeCrafters environment.
 
-Run the linter with:
+Run the unit tests and linter with:
 
 ```sh
-uv run ruff check app
+uv run python -m unittest discover -s tests
+uv run ruff check app tests
 ```
 
 ## CodeCrafters

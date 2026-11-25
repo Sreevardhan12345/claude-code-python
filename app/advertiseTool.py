@@ -3,7 +3,7 @@ TOOLLIST = [
         "type": "function",
         "function": {
             "name": "read_file",
-            "description": "Read a file from the local filesystem",
+            "description": "Read a file or list the contents of a directory",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -79,7 +79,10 @@ TOOLLIST = [
         "type": "function",
         "function": {
             "name": "LSP",
-            "description": "Returns the file, line, and character where a symbol is defined.",
+            "description": (
+                "Find a symbol's definition or references. Use the symbol's current "
+                "position; edits can change line and character numbers."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {

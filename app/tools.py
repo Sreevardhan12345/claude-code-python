@@ -1,5 +1,7 @@
 import json
+import os
 
+from .lsp_client import initialize_lsp
 from .registry import Registry
 
 TOOLS = Registry("tools")
@@ -7,7 +9,18 @@ TOOLS = Registry("tools")
 
 @TOOLS.register("read_file")
 def read_file(path: str) -> str:
-    """Read a file from the local filesystem."""
+    """Read a file or list the contents of a directory."""
+    if os.path.isdir(path):
+        with os.scandir(path) as entries:
+            listing = sorted(
+                (
+                    f"{entry.name}/" if entry.is_dir() else entry.name
+                    for entry in entries
+                ),
+                key=str.casefold,
+            )
+        return "\n".join(listing) if listing else "(empty directory)"
+
     with open(path, "r") as f:
         return f.read()
 
@@ -27,16 +40,22 @@ def run_bash_command(command: str) -> str:
     """Run a bash command and return the output."""
     import subprocess
 
-    try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            check=True,
-            capture_output=True,
+    result = subprocess.run(
+        command,
+        shell=True,
+        check=False,
+        capture_output=True,
+        env={key: value for key, value in os.environ.items() if key != "PYTHONSAFEPATH"},
+    )
+    stdout = result.stdout.decode("utf-8")
+    stderr = result.stderr.decode("utf-8")
+    if result.returncode != 0:
+        return (
+            f"Command exited with status {result.returncode}.\n"
+            f"stdout:\n{stdout or '(empty)'}\n"
+            f"stderr:\n{stderr or '(empty)'}"
         )
-        return result.stdout.decode("utf-8")
-    except subprocess.CalledProcessError as e:
-        raise ValueError(f"Error running command {command}: {e.stderr.decode('utf-8')}")
+    return stdout + stderr
 
 
 @TOOLS.register("Skill")
@@ -56,8 +75,6 @@ def load_skill(name: str, args: str = "", fork_runner=None) -> str:
 def lsp(operation: str, filePath: str, line: int, character: int) -> str:
     """Finds and Returns the file, line, and character where a symbol is defined.
     Indices are 1 based"""
-
-    from .main import initialize_lsp
 
     client = initialize_lsp()
     if client is None:

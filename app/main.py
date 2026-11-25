@@ -5,26 +5,29 @@ from openai import OpenAI
 
 from .advertiseTool import TOOLLIST
 from .helpers.skill_helper import split_skills_from_arguments
+from .lsp_client import initialize_lsp
 from .skills import Skill
 from .tools import process_tool_call
 
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
 
-LSP = None
-
-
-def initialize_lsp():
-    global LSP
-    if LSP is None:
-        from .lsp_client import LSPClient
-
-        LSP = LSPClient.from_environment()
-    return LSP
-
-
 def run_agent_loop(client, conversation):
+    lsp_client = initialize_lsp()
     while True:
+        if lsp_client is not None:
+            diagnostic_feedback = lsp_client.collect_diagnostic_feedback()
+            if diagnostic_feedback:
+                for message in reversed(conversation):
+                    if message["role"] in ("tool", "user"):
+                        content = message.get("content") or ""
+                        message["content"] = (
+                            f"{content}\n\n{diagnostic_feedback}"
+                            if content
+                            else diagnostic_feedback
+                        )
+                        break
+
         chat = client.chat.completions.create(
             model="anthropic/claude-haiku-4.5",
             messages=conversation,
@@ -55,11 +58,28 @@ def run_agent_loop(client, conversation):
         conversation.append(message_dict)
         if not message_dict.get("tool_calls"):
             return response.content
+        pending_feedback = ""
+        wrote_file = False
         for tc in response.tool_calls:
-            tc_response = process_tool_call(
-                tc,
-                fork_runner=lambda messages: run_agent_loop(client, messages),
-            )
+            if lsp_client is not None and not pending_feedback:
+                pending_feedback = lsp_client.collect_diagnostic_feedback()
+            if pending_feedback:
+                tc_response = (
+                    "Tool call not executed because new diagnostics require review. "
+                    "Review the diagnostics and retry if needed."
+                )
+            elif lsp_client is not None and wrote_file and tc.function.name == "write_file":
+                tc_response = (
+                    "Write not executed: only one file write is performed per turn "
+                    "while LSP analysis is enabled. Retry this write on the next turn."
+                )
+            else:
+                tc_response = process_tool_call(
+                    tc,
+                    fork_runner=lambda messages: run_agent_loop(client, messages),
+                )
+                if tc.function.name == "write_file":
+                    wrote_file = True
             conversation.append(
                 {
                     "role": "tool",
@@ -67,6 +87,9 @@ def run_agent_loop(client, conversation):
                     "content": tc_response,
                 }
             )
+
+        if pending_feedback:
+            conversation[-1]["content"] += f"\n\n{pending_feedback}"
 
 
 def main():
@@ -93,7 +116,12 @@ def main():
     conversation = [
         {
             "role": "system",
-            "content": f"you have access to the following skills: {systemPrompt}\n\nIf a skill matches the user's request, call the Skill tool with its name and follow the instructions it returns.",
+            "content": (
+                f"you have access to the following skills: {systemPrompt}\n\n"
+                "If a skill matches the user's request, call the Skill tool with "
+                "its name and follow the instructions it returns. Follow the user's "
+                "requested output format exactly, without extra punctuation or text."
+            ),
         },
     ]
 
