@@ -18,6 +18,7 @@ def write_file(path: str, content: str) -> str:
     with open(path, "w") as f:
         f.write(content)
 
+    lsp("notifyChange", path, 1, 1)
     return f"Successfully wrote to file {path}"
 
 
@@ -59,7 +60,8 @@ def lsp(operation: str, filePath: str, line: int, character: int) -> str:
     from .main import initialize_lsp
 
     client = initialize_lsp()
-
+    if client is None:
+        return "LSP server is not configured; skipped the operation."
     return client.process_lsp_call(operation, filePath, line, character)
 
 

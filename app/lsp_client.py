@@ -17,6 +17,7 @@ class LSPClient:
 
     def __init__(self):
         self.url = os.environ["CODECRAFTERS_LSP_URL"]
+        self.open_documents: dict[str, int] = {}
         self.extension_to_language = self.call("configuration", {})[
             "extensionToLanguage"
         ]
@@ -47,18 +48,7 @@ class LSPClient:
             raise FileNotFoundError
 
         file_path = os.path.abspath(file_path)
-        with open(file_path, "r") as file:
-            self.notify(
-                method="textDocument/didOpen",
-                params={
-                    "textDocument": {
-                        "uri": "file://" + file_path,
-                        "languageId": "python",
-                        "version": 1,
-                        "text": file.read(),
-                    }
-                },
-            )
+        self.notifyOpen(file_path)
 
         definition = self.request(
             method="textDocument/definition",
@@ -84,18 +74,7 @@ class LSPClient:
             raise FileNotFoundError
 
         file_path = os.path.abspath(file_path)
-        with open(file_path, "r") as file:
-            self.notify(
-                method="textDocument/didOpen",
-                params={
-                    "textDocument": {
-                        "uri": "file://" + file_path,
-                        "languageId": "python",
-                        "version": 1,
-                        "text": file.read(),
-                    }
-                },
-            )
+        self.notifyOpen(file_path)
 
         references = self.request(
             method="textDocument/references",
@@ -124,6 +103,47 @@ class LSPClient:
 
         return returnStr
 
+    def notifyOpen(self, path: str):
+        file_path = os.path.abspath(path)
+        document_key = os.path.normcase(file_path)
+        if document_key in self.open_documents:
+            return
+
+        with open(file_path, "r") as file:
+            self.notify(
+                method="textDocument/didOpen",
+                params={
+                    "textDocument": {
+                        "uri": "file://" + file_path,
+                        "languageId": "python",
+                        "version": 1,
+                        "text": file.read(),
+                    }
+                },
+            )
+        self.open_documents[document_key] = 1
+
+    def notifyChange(self, path: str):
+        file_path = os.path.abspath(path)
+        document_key = os.path.normcase(file_path)
+        if document_key not in self.open_documents:
+            self.notifyOpen(file_path)
+            return
+
+        version = self.open_documents[document_key] + 1
+        with open(file_path, "r") as file:
+            self.notify(
+                method="textDocument/didChange",
+                params={
+                    "textDocument": {
+                        "uri": "file://" + file_path,
+                        "version": version,
+                    },
+                    "contentChanges": [{"text": file.read()}],
+                },
+            )
+        self.open_documents[document_key] = version
+
     def process_lsp_call(
         self, operation: str, file_path: str, line: int, character: int
     ) -> str:
@@ -136,5 +156,11 @@ class LSPClient:
             return self.findReferences(
                 file_path=file_path, line=line, character=character
             )
+
+        elif operation == "notifyOpen":
+            self.notifyOpen(file_path)
+
+        elif operation == "notifyChange":
+            self.notifyChange(file_path)
 
         return "LSP operation is not implemented yet"
