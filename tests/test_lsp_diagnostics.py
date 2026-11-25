@@ -215,7 +215,9 @@ class LSPDiagnosticsTests(unittest.TestCase):
         )
 
     def test_defers_batched_tools_when_diagnostics_arrive_between_calls(self):
-        feedback = "<new-diagnostics>checkout.py [Line 5:12] type mismatch</new-diagnostics>"
+        feedback = (
+            "<new-diagnostics>checkout.py [Line 5:12] type mismatch</new-diagnostics>"
+        )
         lsp = Mock()
         lsp.collect_diagnostic_feedback.side_effect = ["", "", feedback, ""]
         calls = [
@@ -244,7 +246,9 @@ class LSPDiagnosticsTests(unittest.TestCase):
         conversation = [{"role": "user", "content": "Make the migration"}]
         with (
             patch.object(main, "initialize_lsp", return_value=lsp),
-            patch.object(main, "process_tool_call", return_value="Write succeeded") as run,
+            patch.object(
+                main, "process_tool_call", return_value="Write succeeded"
+            ) as run,
         ):
             self.assertEqual(main.run_agent_loop(model, conversation), "Done")
 
@@ -283,7 +287,9 @@ class LSPDiagnosticsTests(unittest.TestCase):
         conversation = [{"role": "user", "content": "Make the migration"}]
         with (
             patch.object(main, "initialize_lsp", return_value=lsp),
-            patch.object(main, "process_tool_call", return_value="Write succeeded") as run,
+            patch.object(
+                main, "process_tool_call", return_value="Write succeeded"
+            ) as run,
         ):
             self.assertEqual(main.run_agent_loop(model, conversation), "Done")
 

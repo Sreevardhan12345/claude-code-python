@@ -45,7 +45,9 @@ def run_bash_command(command: str) -> str:
         shell=True,
         check=False,
         capture_output=True,
-        env={key: value for key, value in os.environ.items() if key != "PYTHONSAFEPATH"},
+        env={
+            key: value for key, value in os.environ.items() if key != "PYTHONSAFEPATH"
+        },
     )
     stdout = result.stdout.decode("utf-8")
     stderr = result.stderr.decode("utf-8")

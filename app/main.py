@@ -12,6 +12,7 @@ from .tools import process_tool_call
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
 
+
 def run_agent_loop(client, conversation):
     lsp_client = initialize_lsp()
     while True:
@@ -68,7 +69,11 @@ def run_agent_loop(client, conversation):
                     "Tool call not executed because new diagnostics require review. "
                     "Review the diagnostics and retry if needed."
                 )
-            elif lsp_client is not None and wrote_file and tc.function.name == "write_file":
+            elif (
+                lsp_client is not None
+                and wrote_file
+                and tc.function.name == "write_file"
+            ):
                 tc_response = (
                     "Write not executed: only one file write is performed per turn "
                     "while LSP analysis is enabled. Retry this write on the next turn."
